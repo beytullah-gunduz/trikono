@@ -86,6 +86,7 @@
       <div id="turn-info" class="turn-info"></div>
       <div id="score-board" class="score-board"></div>
       <div id="pool-info" class="pool-info">Pool: 56</div>
+      <button id="settings-btn" class="settings-btn" title="Settings">⚙</button>
     </div>
 
     <!-- Board -->
@@ -101,6 +102,23 @@
         <button id="draw-btn" class="action-btn draw" title="Draw tile">Draw</button>
         <button id="pass-btn" class="action-btn pass" title="Pass turn">Pass</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Settings modal -->
+  <div id="settings-modal" class="modal-overlay hidden">
+    <div class="modal-box">
+      <h3>Settings</h3>
+      <div class="setting-row">
+        <label for="size-slider">Tile size</label>
+        <div class="slider-wrap">
+          <span class="slider-label">S</span>
+          <input type="range" id="size-slider" min="60" max="200" step="5" value="120">
+          <span class="slider-label">L</span>
+        </div>
+        <div id="size-preview" class="size-preview"></div>
+      </div>
+      <button id="settings-close" class="btn-primary" style="width:auto;padding:10px 32px;margin-top:12px;">Done</button>
     </div>
   </div>
 

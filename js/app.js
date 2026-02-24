@@ -113,6 +113,12 @@
                 gameOverText: $('game-over-text'),
                 gameOverScores: $('game-over-scores'),
                 newGameBtn: $('new-game-btn'),
+                // Settings
+                settingsBtn: $('settings-btn'),
+                settingsModal: $('settings-modal'),
+                settingsClose: $('settings-close'),
+                sizeSlider: $('size-slider'),
+                sizePreview: $('size-preview'),
             };
         }
 
@@ -516,6 +522,11 @@
         _initRenderer() {
             if (this.renderer) return;
             this.renderer = new Renderer(this.els.boardCanvas);
+            // Apply saved tile size
+            const savedSize = parseInt(localStorage.getItem('trikono_tile_size')) || 120;
+            this.tileSize = savedSize;
+            this.renderer.setTileSize(savedSize);
+
             this.renderer.onCellClick = (r, c) => this._onBoardClick(r, c);
             this.renderer.onCellHover = cell => {
                 this.hoverCell = cell;
@@ -605,8 +616,48 @@
             document.addEventListener('keydown', e => {
                 if (document.querySelector('.screen:not(.hidden)')?.id !== 'game-screen') return;
                 if (e.key === 'r' || e.key === 'R') { this.rotationOffset++; }
-                if (e.key === 'Escape') { this._deselectTile(); }
+                if (e.key === 'Escape') {
+                    if (!this.els.settingsModal.classList.contains('hidden')) {
+                        this.els.settingsModal.classList.add('hidden');
+                    } else {
+                        this._deselectTile();
+                    }
+                }
             });
+
+            // Settings modal
+            this.els.settingsBtn.addEventListener('click', () => {
+                this.els.settingsModal.classList.remove('hidden');
+            });
+            this.els.settingsClose.addEventListener('click', () => {
+                this.els.settingsModal.classList.add('hidden');
+            });
+            this.els.settingsModal.addEventListener('click', e => {
+                if (e.target === this.els.settingsModal) {
+                    this.els.settingsModal.classList.add('hidden');
+                }
+            });
+
+            // Size slider
+            const saved = parseInt(localStorage.getItem('trikono_tile_size')) || 120;
+            this.els.sizeSlider.value = saved;
+            this.tileSize = saved;
+            this._updateSizePreview();
+
+            this.els.sizeSlider.addEventListener('input', () => {
+                this.tileSize = parseInt(this.els.sizeSlider.value);
+                localStorage.setItem('trikono_tile_size', this.tileSize);
+                if (this.renderer) this.renderer.setTileSize(this.tileSize);
+                this._updateSizePreview();
+                this._renderHand();
+            });
+        }
+
+        _updateSizePreview() {
+            const s = this.tileSize;
+            const w = Math.round(s * 0.7);
+            const h = Math.round(s * 0.6);
+            this.els.sizePreview.innerHTML = this._tileSVG([3, 4, 5], false, w, h);
         }
 
         _updateUI() {
@@ -662,31 +713,35 @@
             const container = this.els.handContainer;
             const tiles = this.viewState ? this.viewState.yourTiles : [];
             container.innerHTML = '';
+            const sz = this.tileSize || 120;
+            const w = Math.round(sz * 0.7);
+            const h = Math.round(sz * 0.6);
 
             tiles.forEach((tile, idx) => {
                 const div = document.createElement('div');
                 div.className = 'hand-tile' + (idx === this.selectedTileIdx ? ' selected' : '');
-                div.innerHTML = this._tileSVG(tile.values, idx === this.selectedTileIdx);
+                div.innerHTML = this._tileSVG(tile.values, idx === this.selectedTileIdx, w, h);
                 div.addEventListener('click', () => this._selectTile(idx));
                 container.appendChild(div);
             });
         }
 
-        _tileSVG(values, selected) {
-            const w = 80, h = 70;
+        _tileSVG(values, selected, w, h) {
+            w = w || 84;
+            h = h || 72;
             const pts = `${w / 2},3 ${w - 3},${h - 3} 3,${h - 3}`;
             const fill = selected ? '#ffd166' : '#374151';
             const stroke = selected ? '#f59e0b' : '#6b7280';
-            // Number positions (Top, BR, BL for UP)
+            const fs = Math.max(12, Math.round(h * 0.26));
             const np = [
-                { x: w / 2, y: 25 },
-                { x: w - 17, y: h - 15 },
-                { x: 17, y: h - 15 },
+                { x: w / 2, y: h * 0.32 },
+                { x: w - w * 0.2, y: h - h * 0.2 },
+                { x: w * 0.2, y: h - h * 0.2 },
             ];
             return `<svg viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">
                 <polygon points="${pts}" fill="${fill}" stroke="${stroke}" stroke-width="2"/>
                 ${np.map((p, i) => `<text x="${p.x}" y="${p.y}" text-anchor="middle"
-                    dominant-baseline="middle" fill="#fff" font-size="18"
+                    dominant-baseline="middle" fill="#fff" font-size="${fs}"
                     font-weight="bold" font-family="monospace">${values[i]}</text>`).join('')}
             </svg>`;
         }

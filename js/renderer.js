@@ -18,8 +18,8 @@
       this.canvas = canvas;
       this.ctx = canvas.getContext('2d');
 
-      // Tile geometry
-      this.S = 90;                       // side length
+      // Tile geometry (base values, scaled by setTileSize)
+      this.S = 120;                      // side length
       this.halfS = this.S / 2;
       this.H = this.S * Math.sqrt(3) / 2; // triangle height
 
@@ -245,6 +245,13 @@
     centerOn(bx, by) {
       this.panX = -bx * this.zoom;
       this.panY = -by * this.zoom;
+    }
+
+    /** Update the tile side length and recompute derived geometry. */
+    setTileSize(s) {
+      this.S = s;
+      this.halfS = s / 2;
+      this.H = s * Math.sqrt(3) / 2;
     }
 
     /** Centre on the centroid of placed tiles. */
