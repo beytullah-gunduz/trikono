@@ -4,7 +4,7 @@
 (function () {
   'use strict';
 
-  const { Tiles } = window.Triomino;
+  const { Tiles } = window.Trikono;
 
   /*
    * Corner indices for a placed tile:
@@ -149,12 +149,103 @@
 
     /* ---- scoring ---- */
 
-    calcScore(values) {
-      const sum = Tiles.tileSum(values);
+    /**
+     * Full score for placing a tile at (r, c) with corner values.
+     * Includes base value, triple bonus, bridge, and hexagon bonuses.
+     */
+    calcScore(r, c, values) {
+      // Base score = sum of corner numbers
+      let score = Tiles.tileSum(values);
+
+    // Triple bonus (all 3 corners identical)
       if (Tiles.isTriple(values)) {
-        return values[0] === 0 ? 40 : sum + 10;
+        score = values[0] === 0 ? 40 : score + 10;
       }
-      return sum;
+
+      // Bridge bonus (+40)
+      if (this._isBridge(r, c)) score += 40;
+
+      // Hexagon bonus (+50 / +60 / +70)
+      const hex = this._countCompletedHexagons(r, c);
+      if (hex === 1) score += 50;
+      else if (hex === 2) score += 60;
+      else if (hex >= 3) score += 70;
+
+      return score;
+    }
+
+    /* ---- bonus detection helpers ---- */
+
+    /**
+     * Vertex coordinates (vx, vy) for each corner of a cell.
+     * vx = x / halfS,  vy = y / H  in the vertex lattice.
+     */
+    _vertexCoords(r, c) {
+      if (Board.isUp(r, c)) {
+        return [
+          { vx: c + 1, vy: r },       // Top  [0]
+          { vx: c + 2, vy: r + 1 },   // BR   [1]
+          { vx: c, vy: r + 1 },   // BL   [2]
+        ];
+      }
+      return [
+        { vx: c + 1, vy: r + 1 },   // Bot  [0]
+        { vx: c, vy: r },       // TL   [1]
+        { vx: c + 2, vy: r },       // TR   [2]
+      ];
+    }
+
+    /**
+     * The 6 triangle cells (row, col) surrounding a vertex (vx, vy).
+     * Every interior vertex is shared by exactly 6 triangles
+     * (3 UP + 3 DOWN).
+     */
+    _surroundingCells(vx, vy) {
+      return [
+        { r: vy, c: vx - 1 },   // UP  – Top  corner at vertex
+        { r: vy - 1, c: vx - 2 },   // UP  – BR   corner at vertex
+        { r: vy - 1, c: vx },       // UP  – BL   corner at vertex
+        { r: vy - 1, c: vx - 1 },   // DOWN – Bot  corner at vertex
+        { r: vy, c: vx },       // DOWN – TL   corner at vertex
+        { r: vy, c: vx - 2 },   // DOWN – TR   corner at vertex
+      ];
+    }
+
+    /** Are all 6 cells around vertex (vx, vy) filled? */
+    _isHexagonComplete(vx, vy) {
+      return this._surroundingCells(vx, vy)
+        .every(cell => this.has(cell.r, cell.c));
+    }
+
+    /** Count hexagons newly completed by the tile at (r, c). */
+    _countCompletedHexagons(r, c) {
+      let n = 0;
+      for (const v of this._vertexCoords(r, c)) {
+        if (this._isHexagonComplete(v.vx, v.vy)) n++;
+      }
+      return n;
+    }
+
+    /**
+     * Bridge (PONT): the placed tile has exactly 1 edge-neighbor
+     * (empty space on both other sides) AND the vertex opposite
+     * that edge is shared with at least one other existing tile.
+     */
+    _isBridge(r, c) {
+      const nbs = this.neighbors(r, c);
+      const occ = nbs.map(n => this.has(n.row, n.col));
+      if (occ.filter(Boolean).length !== 1) return false;
+
+      // Which vertex is opposite the single connected edge?
+      //   UP  edges [left, right, bottom] → opposite vertex [BR(1), BL(2), Top(0)]
+      //   DOWN edges [left, right, top]   → opposite vertex [TR(2), TL(1), Bot(0)]
+      const connIdx = occ.indexOf(true);
+      const oppMap = Board.isUp(r, c) ? [1, 2, 0] : [2, 1, 0];
+      const oppVert = this._vertexCoords(r, c)[oppMap[connIdx]];
+
+      // Does any OTHER tile share that vertex?
+      return this._surroundingCells(oppVert.vx, oppVert.vy)
+        .some(cell => !(cell.r === r && cell.c === c) && this.has(cell.r, cell.c));
     }
 
     /* ---- serialisation ---- */
@@ -171,5 +262,5 @@
     }
   }
 
-  window.Triomino.Board = Board;
+  window.Trikono.Board = Board;
 })();

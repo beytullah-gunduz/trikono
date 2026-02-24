@@ -4,8 +4,8 @@
 (function () {
     'use strict';
 
-    const { Tiles } = window.Triomino;
-    const Board = window.Triomino.Board;
+    const { Tiles } = window.Trikono;
+    const Board = window.Trikono.Board;
 
     class Game {
         constructor() {
@@ -92,7 +92,7 @@
 
             this.board.place(row, col, values, tile.id, playerIdx);
 
-            const score = this.board.calcScore(values);
+            const score = this.board.calcScore(row, col, values);
             player.score += score;
             player.tiles.splice(tileIdx, 1);
 
@@ -151,6 +151,11 @@
             this._nextTurn();
 
             if (this._isStalemate()) {
+                // Each player subtracts remaining tile values from score
+                for (const p of this.players) {
+                    for (const t of p.tiles)
+                        p.score -= Tiles.tileSum(t.values);
+                }
                 this.phase = 'finished';
                 this.winner = this._bestPlayer();
                 return { success: true, gameOver: true, winner: this.winner };
@@ -240,5 +245,5 @@
         }
     }
 
-    window.Triomino.Game = Game;
+    window.Trikono.Game = Game;
 })();

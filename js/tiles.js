@@ -5,7 +5,7 @@
   'use strict';
 
   /**
-   * Generate all 56 unique Triomino tiles.
+   * Generate all 56 unique Trikono tiles.
    * Each tile has values [a, b, c] with a ≤ b ≤ c, 0–5.
    */
   function generateAll() {
@@ -61,8 +61,8 @@
   }
 
   // Expose
-  window.Triomino = window.Triomino || {};
-  window.Triomino.Tiles = {
+  window.Trikono = window.Trikono || {};
+  window.Trikono.Tiles = {
     generateAll,
     getPlacedValues,
     shuffleArray,

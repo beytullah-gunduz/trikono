@@ -4,7 +4,7 @@
 (function () {
   'use strict';
 
-  const Board = window.Triomino.Board;
+  const Board = window.Trikono.Board;
 
   const PLAYER_COLORS = [
     { base: '#4361ee', light: '#5e7cf7', dark: '#2b44c0' },
@@ -389,5 +389,5 @@
     }
   }
 
-  window.Triomino.Renderer = Renderer;
+  window.Trikono.Renderer = Renderer;
 })();

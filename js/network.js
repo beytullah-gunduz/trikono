@@ -37,7 +37,7 @@
         createGame() {
             this.gameId = this._genId();
             this.isHost = true;
-            const peerId = 'triomino-' + this.gameId;
+            const peerId = 'trikono-' + this.gameId;
 
             return new Promise((resolve, reject) => {
                 this.peer = new Peer(peerId, { debug: 0 });
@@ -71,7 +71,7 @@
                 this.peer = new Peer(null, { debug: 0 });
 
                 this.peer.on('open', () => {
-                    const conn = this.peer.connect('triomino-' + this.gameId, { reliable: true });
+                    const conn = this.peer.connect('trikono-' + this.gameId, { reliable: true });
 
                     conn.on('open', () => {
                         this.hostConn = conn;
@@ -152,5 +152,5 @@
         }
     }
 
-    window.Triomino.Network = Network;
+    window.Trikono.Network = Network;
 })();

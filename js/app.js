@@ -4,7 +4,7 @@
 (function () {
     'use strict';
 
-    const { Tiles, Board, Renderer, Game, Network } = window.Triomino;
+    const { Tiles, Board, Renderer, Game, Network } = window.Trikono;
 
     class App {
         constructor() {
@@ -675,6 +675,7 @@
                 // For local mode, selectedTileIdx is relative to the current player's hand
                 const res = this.game.placeTile(pIdx, this.selectedTileIdx, row, col, chosen.rotation);
                 if (res.success) {
+                    if (res.score > 15) this._notify(`+${res.score} points!`);
                     this._deselectTile();
                     if (this.mode === 'host') this._broadcastState();
                     this._updateLocalGame();
@@ -771,6 +772,6 @@
     window.addEventListener('DOMContentLoaded', () => {
         const app = new App();
         app.init();
-        window._triominoApp = app; // debug access
+        window._trikonoApp = app; // debug access
     });
 })();
