@@ -137,7 +137,9 @@
 
                 this._showLobbyOnline(gameId, name);
             } catch (e) {
-                this.els.homeError.textContent = 'Failed to create game. Check your connection.';
+                const detail = e.message || e.type || 'Unknown error';
+                this.els.homeError.textContent = 'Failed to create game: ' + detail;
+                console.error('Create game error:', e);
                 this.els.createBtn.disabled = false;
                 this.els.createBtn.textContent = 'Create Online Game';
             }
@@ -168,7 +170,9 @@
                 this.els.startBtn.classList.add('hidden');
                 this.els.localSetup.classList.add('hidden');
             } catch (e) {
-                this.els.homeError.textContent = 'Could not connect. Check the code and try again.';
+                const detail = e.message || e.type || 'Unknown error';
+                this.els.homeError.textContent = 'Could not connect: ' + detail;
+                console.error('Join game error:', e);
                 this.els.joinBtn.disabled = false;
                 this.els.joinBtn.textContent = 'Join Game';
             }

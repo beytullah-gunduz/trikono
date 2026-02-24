@@ -4,6 +4,20 @@
 (function () {
     'use strict';
 
+    const CONNECT_TIMEOUT = 15000; // ms
+
+    const PEER_OPTIONS = {
+        debug: 1,
+        config: {
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' },
+                { urls: 'stun:stun2.l.google.com:19302' },
+                { urls: 'stun:stun.services.mozilla.com' }
+            ]
+        }
+    };
+
     class Network {
         constructor() {
             /** @type {Peer|null} */
@@ -40,22 +54,50 @@
             const peerId = 'trikono-' + this.gameId;
 
             return new Promise((resolve, reject) => {
-                this.peer = new Peer(peerId, { debug: 0 });
+                if (typeof Peer === 'undefined') {
+                    return reject(new Error('PeerJS library not loaded. Check your internet connection.'));
+                }
+
+                let settled = false;
+                const timer = setTimeout(() => {
+                    if (!settled) {
+                        settled = true;
+                        if (this.peer) this.peer.destroy();
+                        reject(new Error('Connection timed out. The signaling server may be unreachable.'));
+                    }
+                }, CONNECT_TIMEOUT);
+
+                this.peer = new Peer(peerId, PEER_OPTIONS);
 
                 this.peer.on('open', () => {
+                    if (settled) return;
+                    settled = true;
+                    clearTimeout(timer);
                     this.peer.on('connection', conn => this._handleIncoming(conn));
                     resolve(this.gameId);
                 });
 
                 this.peer.on('error', err => {
+                    if (settled) return;
                     if (err.type === 'unavailable-id') {
                         // Collision – retry with a new id
+                        clearTimeout(timer);
+                        settled = true;
                         this.peer.destroy();
                         this.gameId = this._genId();
                         this.createGame().then(resolve).catch(reject);
                     } else {
+                        settled = true;
+                        clearTimeout(timer);
                         if (this.onError) this.onError(err);
                         reject(err);
+                    }
+                });
+
+                this.peer.on('disconnected', () => {
+                    // Try to reconnect to signaling server
+                    if (this.peer && !this.peer.destroyed) {
+                        this.peer.reconnect();
                     }
                 });
             });
@@ -68,12 +110,29 @@
             this.isHost = false;
 
             return new Promise((resolve, reject) => {
-                this.peer = new Peer(null, { debug: 0 });
+                if (typeof Peer === 'undefined') {
+                    return reject(new Error('PeerJS library not loaded. Check your internet connection.'));
+                }
+
+                let settled = false;
+                const timer = setTimeout(() => {
+                    if (!settled) {
+                        settled = true;
+                        if (this.peer) this.peer.destroy();
+                        reject(new Error('Connection timed out. The host may not be reachable.'));
+                    }
+                }, CONNECT_TIMEOUT);
+
+                this.peer = new Peer(null, PEER_OPTIONS);
 
                 this.peer.on('open', () => {
+                    if (settled) return;
                     const conn = this.peer.connect('trikono-' + this.gameId, { reliable: true });
 
                     conn.on('open', () => {
+                        if (settled) return;
+                        settled = true;
+                        clearTimeout(timer);
                         this.hostConn = conn;
 
                         conn.on('data', data => {
@@ -88,12 +147,18 @@
                     });
 
                     conn.on('error', err => {
+                        if (settled) return;
+                        settled = true;
+                        clearTimeout(timer);
                         if (this.onError) this.onError(err);
                         reject(err);
                     });
                 });
 
                 this.peer.on('error', err => {
+                    if (settled) return;
+                    settled = true;
+                    clearTimeout(timer);
                     if (this.onError) this.onError(err);
                     reject(err);
                 });
