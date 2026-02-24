@@ -231,9 +231,11 @@
 
         /* ---- utility ---- */
 
-        getShareUrl() {
+        getShareUrl(turnApiKey) {
             const u = new URL(window.location.href.split('#')[0]);
-            u.hash = this.gameId;
+            u.hash = turnApiKey
+                ? this.gameId + ':' + turnApiKey
+                : this.gameId;
             return u.toString();
         }
 

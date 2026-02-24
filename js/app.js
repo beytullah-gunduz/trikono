@@ -53,11 +53,16 @@
                 else localStorage.removeItem('trikono_turn_key');
             });
 
-            // Check URL hash for auto-join
+            // Check URL hash for auto-join  (format: #GAMECODE or #GAMECODE:TURNKEY)
             const hash = location.hash.replace('#', '').trim();
             this._showScreen('home');
             if (hash) {
-                this.els.gameCode.value = hash;
+                const [code, turnKey] = hash.split(':');
+                this.els.gameCode.value = code;
+                if (turnKey) {
+                    this.els.turnKey.value = turnKey;
+                    localStorage.setItem('trikono_turn_key', turnKey);
+                }
                 // Auto-join after a short delay so the page renders first
                 setTimeout(() => this._joinOnline(), 300);
             }
@@ -250,7 +255,7 @@
             this._showScreen('lobby');
             this.els.lobbyTitle.textContent = 'Game Lobby';
             this.els.shareBox.classList.remove('hidden');
-            const shareUrl = this.network.getShareUrl();
+            const shareUrl = this.network.getShareUrl(this._getTurnKey());
             this.els.shareUrl.value = shareUrl;
             this._generateQR(shareUrl);
             this.els.localSetup.classList.add('hidden');
