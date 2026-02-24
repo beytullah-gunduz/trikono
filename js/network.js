@@ -6,39 +6,37 @@
 
     const CONNECT_TIMEOUT = 15000; // ms
 
-    const STUN_ONLY = {
-        debug: 1,
-        config: {
-            iceServers: [
-                { urls: 'stun:stun.l.google.com:19302' },
-                { urls: 'stun:stun1.l.google.com:19302' },
-                { urls: 'stun:stun.services.mozilla.com' }
-            ]
-        }
-    };
+    /* Default options: STUN only (works on same network / open NATs) */
+    const STUN_ONLY = [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'stun:stun.services.mozilla.com' }
+    ];
 
     /**
-     * Fetch temporary TURN credentials from Metered.ca (free tier).
-     * Returns PeerJS options with TURN servers, or STUN-only fallback.
+     * Build PeerJS options with ICE servers.
+     * If a Metered API key is provided, fetch TURN credentials for relay support.
+     * Otherwise fall back to STUN-only.
      */
-    async function _buildPeerOptions() {
-        const apiKey = (window.Trikono.Config || {}).METERED_API_KEY;
-        if (!apiKey) {
-            console.warn('[Trikono] No METERED_API_KEY configured – using STUN only (may fail behind strict NAT).');
-            return STUN_ONLY;
+    async function _buildPeerOptions(turnApiKey) {
+        let iceServers = STUN_ONLY;
+
+        if (turnApiKey) {
+            try {
+                const resp = await fetch(
+                    `https://trikono.metered.live/api/v1/turn/credentials?apiKey=${turnApiKey}`
+                );
+                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                iceServers = await resp.json();
+                console.log('[Trikono] TURN credentials fetched:', iceServers.length, 'servers');
+            } catch (e) {
+                console.warn('[Trikono] Could not fetch TURN credentials, using STUN only:', e.message);
+            }
+        } else {
+            console.log('[Trikono] No TURN API key – using STUN only');
         }
-        try {
-            const resp = await fetch(
-                `https://trikono.metered.live/api/v1/turn/credentials?apiKey=${apiKey}`
-            );
-            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-            const iceServers = await resp.json();
-            console.log('[Trikono] TURN credentials fetched:', iceServers.length, 'servers');
-            return { debug: 1, config: { iceServers } };
-        } catch (e) {
-            console.warn('[Trikono] Could not fetch TURN credentials, falling back to STUN only:', e.message);
-            return STUN_ONLY;
-        }
+
+        return { debug: 1, config: { iceServers } };
     }
 
     class Network {
@@ -71,11 +69,11 @@
 
         /* ---- host ---- */
 
-        async createGame() {
+        async createGame(turnApiKey) {
             this.gameId = this._genId();
             this.isHost = true;
             const peerId = 'trikono-' + this.gameId;
-            const peerOptions = await _buildPeerOptions();
+            const peerOptions = await _buildPeerOptions(turnApiKey);
 
             return new Promise((resolve, reject) => {
                 if (typeof Peer === 'undefined') {
@@ -108,7 +106,7 @@
                         settled = true;
                         this.peer.destroy();
                         this.gameId = this._genId();
-                        this.createGame().then(resolve).catch(reject);
+                        this.createGame(turnApiKey).then(resolve).catch(reject);
                     } else {
                         settled = true;
                         clearTimeout(timer);
@@ -134,10 +132,10 @@
 
         /* ---- client ---- */
 
-        async joinGame(gameId) {
+        async joinGame(gameId, turnApiKey) {
             this.gameId = gameId.toUpperCase();
             this.isHost = false;
-            const peerOptions = await _buildPeerOptions();
+            const peerOptions = await _buildPeerOptions(turnApiKey);
 
             return new Promise((resolve, reject) => {
                 if (typeof Peer === 'undefined') {

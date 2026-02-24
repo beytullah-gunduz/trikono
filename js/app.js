@@ -43,6 +43,16 @@
             this._bindLobby();
             this._bindGame();
 
+            // Restore saved TURN key
+            const savedKey = localStorage.getItem('trikono_turn_key') || '';
+            this.els.turnKey.value = savedKey;
+            // Save on change
+            this.els.turnKey.addEventListener('input', () => {
+                const v = this.els.turnKey.value.trim();
+                if (v) localStorage.setItem('trikono_turn_key', v);
+                else localStorage.removeItem('trikono_turn_key');
+            });
+
             // Check URL hash for auto-join
             const hash = location.hash.replace('#', '').trim();
             this._showScreen('home');
@@ -51,6 +61,10 @@
                 // Auto-join after a short delay so the page renders first
                 setTimeout(() => this._joinOnline(), 300);
             }
+        }
+
+        _getTurnKey() {
+            return (this.els.turnKey.value || '').trim();
         }
 
         _cacheDOM() {
@@ -66,6 +80,7 @@
                 joinBtn: $('join-btn'),
                 localBtn: $('local-btn'),
                 gameCode: $('game-code'),
+                turnKey: $('turn-key'),
                 homeError: $('home-error'),
                 // Lobby
                 lobbyTitle: $('lobby-title'),
@@ -126,7 +141,7 @@
             try {
                 this.els.createBtn.disabled = true;
                 this.els.createBtn.textContent = 'Connecting…';
-                const gameId = await this.network.createGame();
+                const gameId = await this.network.createGame(this._getTurnKey());
                 this.myIndex = this.game.addPlayer('host', name);
                 this.peerToPlayer.set('host', 0);
 
@@ -161,7 +176,7 @@
             try {
                 this.els.joinBtn.disabled = true;
                 this.els.joinBtn.textContent = 'Connecting…';
-                await this.network.joinGame(code);
+                await this.network.joinGame(code, this._getTurnKey());
 
                 this.network.onMessage = (data) => this._clientOnMessage(data);
                 this.network.onPeerDisconnected = () => this._notify('Host disconnected!', true);
