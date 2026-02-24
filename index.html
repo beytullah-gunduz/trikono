@@ -89,19 +89,24 @@
       <button id="settings-btn" class="settings-btn" title="Settings">⚙</button>
     </div>
 
-    <!-- Board -->
-    <div class="board-area">
-      <canvas id="board-canvas"></canvas>
-    </div>
+    <!-- Main game area: left panel + board -->
+    <div class="game-body">
 
-    <!-- Hand & actions -->
-    <div class="hand-area">
-      <div id="hand-tiles" class="hand-tiles"></div>
-      <div class="action-buttons">
-        <button id="rotate-btn" class="action-btn rotate" title="Rotate (R)">↻ Rotate</button>
-        <button id="draw-btn" class="action-btn draw" title="Draw tile">Draw</button>
-        <button id="pass-btn" class="action-btn pass" title="Pass turn">Pass</button>
+      <!-- Left panel: hand tiles + actions -->
+      <div class="hand-panel">
+        <div id="hand-tiles" class="hand-tiles"></div>
+        <div class="action-buttons">
+          <button id="rotate-btn" class="action-btn rotate" title="Rotate (R)">↻ Rotate</button>
+          <button id="draw-btn" class="action-btn draw" title="Draw tile">Draw</button>
+          <button id="pass-btn" class="action-btn pass" title="Pass turn">Pass</button>
+        </div>
       </div>
+
+      <!-- Board -->
+      <div class="board-area">
+        <canvas id="board-canvas"></canvas>
+      </div>
+
     </div>
   </div>
 

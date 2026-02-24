@@ -533,6 +533,8 @@
                 this.rotationOffset = 0;
             };
 
+            this._updateHandPanelWidth();
+
             // Ensure layout is settled, then resize and center
             requestAnimationFrame(() => {
                 this.renderer.resize();
@@ -649,6 +651,7 @@
                 localStorage.setItem('trikono_tile_size', this.tileSize);
                 if (this.renderer) this.renderer.setTileSize(this.tileSize);
                 this._updateSizePreview();
+                this._updateHandPanelWidth();
                 this._renderHand();
             });
         }
@@ -658,6 +661,15 @@
             const w = Math.round(s * 0.7);
             const h = Math.round(s * 0.6);
             this.els.sizePreview.innerHTML = this._tileSVG([3, 4, 5], false, w, h);
+        }
+
+        _updateHandPanelWidth() {
+            const panel = document.querySelector('.hand-panel');
+            if (!panel) return;
+            const sz = this.tileSize || 120;
+            const tileW = Math.round(sz * 0.7);
+            // panel width = tile width + padding + border
+            panel.style.width = (tileW + 36) + 'px';
         }
 
         _updateUI() {
