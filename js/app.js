@@ -45,11 +45,11 @@
 
             // Check URL hash for auto-join
             const hash = location.hash.replace('#', '').trim();
+            this._showScreen('home');
             if (hash) {
                 this.els.gameCode.value = hash;
-                this._showScreen('home');
-            } else {
-                this._showScreen('home');
+                // Auto-join after a short delay so the page renders first
+                setTimeout(() => this._joinOnline(), 300);
             }
         }
 
@@ -134,9 +134,13 @@
                 this.network.onPeerConnected = peerId => this._hostOnPeerConnected(peerId);
                 this.network.onMessage = (data, from) => this._hostOnMessage(data, from);
                 this.network.onPeerDisconnected = peerId => this._hostOnPeerDisconnected(peerId);
-                this.network.onError = err => this._notify('Connection error: ' + err.type, true);
+                this.network.onError = err => {
+                    this._notify('Connection error: ' + err.type, true);
+                    this._updateHostStatus();
+                };
 
                 this._showLobbyOnline(gameId, name);
+                this._startHostStatusMonitor();
             } catch (e) {
                 const detail = e.message || e.type || 'Unknown error';
                 this.els.homeError.textContent = 'Failed to create game: ' + detail;
@@ -171,11 +175,12 @@
                 this.els.startBtn.classList.add('hidden');
                 this.els.localSetup.classList.add('hidden');
             } catch (e) {
+                if (this.network) this.network.destroy();
                 const detail = e.message || e.type || 'Unknown error';
                 this.els.homeError.textContent = 'Could not connect: ' + detail;
                 console.error('Join game error:', e);
                 this.els.joinBtn.disabled = false;
-                this.els.joinBtn.textContent = 'Join Game';
+                this.els.joinBtn.textContent = 'Retry Join';
             }
         }
 
@@ -237,6 +242,41 @@
             this.els.startBtn.classList.remove('hidden');
             this.els.startBtn.disabled = true;
             this._renderPlayerList();
+            this._updateHostStatus();
+        }
+
+        _updateHostStatus() {
+            let el = document.getElementById('host-status');
+            if (!el) {
+                el = document.createElement('p');
+                el.id = 'host-status';
+                el.style.cssText = 'font-size:0.82rem;margin-top:4px;';
+                this.els.shareBox.parentNode.insertBefore(el, this.els.shareBox.nextSibling);
+            }
+            if (!this.network || !this.network.peer) {
+                el.textContent = '⚠ Not connected to signaling server';
+                el.style.color = 'var(--danger)';
+            } else if (this.network.peer.disconnected) {
+                el.textContent = '⚠ Disconnected – reconnecting…';
+                el.style.color = 'var(--gold)';
+            } else if (this.network.peer.open) {
+                el.textContent = '✓ Waiting for players to join…';
+                el.style.color = 'var(--success)';
+            } else {
+                el.textContent = '⏳ Connecting to signaling server…';
+                el.style.color = 'var(--text-dim)';
+            }
+        }
+
+        _startHostStatusMonitor() {
+            if (this._hostStatusInterval) clearInterval(this._hostStatusInterval);
+            this._hostStatusInterval = setInterval(() => {
+                if (this.mode !== 'host') {
+                    clearInterval(this._hostStatusInterval);
+                    return;
+                }
+                this._updateHostStatus();
+            }, 3000);
         }
 
         _generateQR(url) {

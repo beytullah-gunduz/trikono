@@ -95,10 +95,16 @@
                 });
 
                 this.peer.on('disconnected', () => {
-                    // Try to reconnect to signaling server
+                    console.warn('[Trikono] Host disconnected from signaling server, reconnecting…');
                     if (this.peer && !this.peer.destroyed) {
-                        this.peer.reconnect();
+                        setTimeout(() => {
+                            if (this.peer && !this.peer.destroyed) this.peer.reconnect();
+                        }, 1000);
                     }
+                });
+
+                this.peer.on('close', () => {
+                    console.warn('[Trikono] Host peer closed');
                 });
             });
         }
