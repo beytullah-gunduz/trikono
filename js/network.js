@@ -6,31 +6,40 @@
 
     const CONNECT_TIMEOUT = 15000; // ms
 
-    const PEER_OPTIONS = {
+    const STUN_ONLY = {
         debug: 1,
         config: {
             iceServers: [
                 { urls: 'stun:stun.l.google.com:19302' },
                 { urls: 'stun:stun1.l.google.com:19302' },
-                { urls: 'stun:stun.services.mozilla.com' },
-                {
-                    urls: 'turn:openrelay.metered.ca:80',
-                    username: 'openrelayproject',
-                    credential: 'openrelayproject'
-                },
-                {
-                    urls: 'turn:openrelay.metered.ca:443',
-                    username: 'openrelayproject',
-                    credential: 'openrelayproject'
-                },
-                {
-                    urls: 'turns:openrelay.metered.ca:443?transport=tcp',
-                    username: 'openrelayproject',
-                    credential: 'openrelayproject'
-                }
+                { urls: 'stun:stun.services.mozilla.com' }
             ]
         }
     };
+
+    /**
+     * Fetch temporary TURN credentials from Metered.ca (free tier).
+     * Returns PeerJS options with TURN servers, or STUN-only fallback.
+     */
+    async function _buildPeerOptions() {
+        const apiKey = (window.Trikono.Config || {}).METERED_API_KEY;
+        if (!apiKey) {
+            console.warn('[Trikono] No METERED_API_KEY configured – using STUN only (may fail behind strict NAT).');
+            return STUN_ONLY;
+        }
+        try {
+            const resp = await fetch(
+                `https://trikono.metered.live/api/v1/turn/credentials?apiKey=${apiKey}`
+            );
+            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+            const iceServers = await resp.json();
+            console.log('[Trikono] TURN credentials fetched:', iceServers.length, 'servers');
+            return { debug: 1, config: { iceServers } };
+        } catch (e) {
+            console.warn('[Trikono] Could not fetch TURN credentials, falling back to STUN only:', e.message);
+            return STUN_ONLY;
+        }
+    }
 
     class Network {
         constructor() {
@@ -62,10 +71,11 @@
 
         /* ---- host ---- */
 
-        createGame() {
+        async createGame() {
             this.gameId = this._genId();
             this.isHost = true;
             const peerId = 'trikono-' + this.gameId;
+            const peerOptions = await _buildPeerOptions();
 
             return new Promise((resolve, reject) => {
                 if (typeof Peer === 'undefined') {
@@ -81,7 +91,7 @@
                     }
                 }, CONNECT_TIMEOUT);
 
-                this.peer = new Peer(peerId, PEER_OPTIONS);
+                this.peer = new Peer(peerId, peerOptions);
 
                 this.peer.on('open', () => {
                     if (settled) return;
@@ -94,7 +104,6 @@
                 this.peer.on('error', err => {
                     if (settled) return;
                     if (err.type === 'unavailable-id') {
-                        // Collision – retry with a new id
                         clearTimeout(timer);
                         settled = true;
                         this.peer.destroy();
@@ -125,9 +134,10 @@
 
         /* ---- client ---- */
 
-        joinGame(gameId) {
+        async joinGame(gameId) {
             this.gameId = gameId.toUpperCase();
             this.isHost = false;
+            const peerOptions = await _buildPeerOptions();
 
             return new Promise((resolve, reject) => {
                 if (typeof Peer === 'undefined') {
@@ -143,7 +153,7 @@
                     }
                 }, CONNECT_TIMEOUT);
 
-                this.peer = new Peer(null, PEER_OPTIONS);
+                this.peer = new Peer(null, peerOptions);
 
                 this.peer.on('open', () => {
                     if (settled) return;
