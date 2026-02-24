@@ -53,7 +53,7 @@
                 else localStorage.removeItem('trikono_turn_key');
             });
 
-            // Check URL hash for auto-join  (format: #GAMECODE or #GAMECODE:TURNKEY)
+            // Pre-fill from URL hash (format: #GAMECODE or #GAMECODE:TURNKEY)
             const hash = location.hash.replace('#', '').trim();
             this._showScreen('home');
             if (hash) {
@@ -63,8 +63,8 @@
                     this.els.turnKey.value = turnKey;
                     localStorage.setItem('trikono_turn_key', turnKey);
                 }
-                // Auto-join after a short delay so the page renders first
-                setTimeout(() => this._joinOnline(), 300);
+                // Focus the name input so the user can type and join
+                this.els.playerName.focus();
             }
         }
 
