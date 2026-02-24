@@ -72,6 +72,7 @@
                 shareBox: $('share-box'),
                 shareUrl: $('share-url'),
                 copyBtn: $('copy-btn'),
+                qrCode: $('qr-code'),
                 playerList: $('player-list'),
                 startBtn: $('start-btn'),
                 lobbyStatus: $('lobby-status'),
@@ -229,11 +230,32 @@
             this._showScreen('lobby');
             this.els.lobbyTitle.textContent = 'Game Lobby';
             this.els.shareBox.classList.remove('hidden');
-            this.els.shareUrl.value = this.network.getShareUrl();
+            const shareUrl = this.network.getShareUrl();
+            this.els.shareUrl.value = shareUrl;
+            this._generateQR(shareUrl);
             this.els.localSetup.classList.add('hidden');
             this.els.startBtn.classList.remove('hidden');
             this.els.startBtn.disabled = true;
             this._renderPlayerList();
+        }
+
+        _generateQR(url) {
+            const container = this.els.qrCode;
+            container.innerHTML = '';
+            if (typeof qrcode === 'undefined') return;
+            try {
+                const qr = qrcode(0, 'M');
+                qr.addData(url);
+                qr.make();
+                const img = document.createElement('img');
+                img.src = qr.createDataURL(5, 0);
+                img.alt = 'Scan to join';
+                img.width = 180;
+                img.height = 180;
+                container.appendChild(img);
+            } catch (e) {
+                console.warn('QR generation failed:', e);
+            }
         }
 
         _renderPlayerList() {

@@ -156,13 +156,26 @@ input {
 
 .share-box {
     display: flex;
-    gap: 8px;
+    flex-direction: column;
+    gap: 10px;
     align-items: center;
     background: var(--surface);
-    padding: 8px 12px;
+    padding: 16px;
     border-radius: var(--radius);
     width: 100%;
     max-width: 420px;
+}
+
+.qr-code {
+    background: #fff;
+    padding: 10px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.qr-code img {
+    display: block;
 }
 
 .share-box input {
